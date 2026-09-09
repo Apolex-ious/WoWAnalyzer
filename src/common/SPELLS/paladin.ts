@@ -526,6 +526,13 @@ const spells = {
   },
 
   // Protection
+  // Protection casts a spec-specific Hammer of Wrath. 24275 is Retribution's and is never
+  // seen in a Protection log.
+  HAMMER_OF_WRATH_PROTECTION: {
+    id: 1241413,
+    name: 'Hammer of Wrath',
+    icon: 'inv12_ability_paladin_hammerofwrath',
+  },
   // GoAK has a different spell ID with Glyph of the Queen
   GUARDIAN_OF_ANCIENT_KINGS_QUEEN: {
     id: 212641,

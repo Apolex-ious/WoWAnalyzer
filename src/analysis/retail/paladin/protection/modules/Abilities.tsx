@@ -4,9 +4,19 @@ import CoreAbilities from 'parser/core/modules/Abilities';
 import SPELL_CATEGORY from 'parser/core/SPELL_CATEGORY';
 import { TALENTS_PALADIN } from 'common/TALENTS';
 
+/**
+ * Cooldowns, charges and GCDs here are the static values from the 12.0.7 client spell data
+ * for Protection, with each talent modifier resolved against the selected build. Nothing
+ * adjusts these at runtime: a spell's cooldown is a property of the build, so it belongs in
+ * the spellbook rather than being rewritten by an analyzer after the fact.
+ */
 class Abilities extends CoreAbilities {
   spellbook() {
     const combatant = this.selectedCombatant;
+    // Unbreakable Spirit is a percentage reduction rather than a flat one, so it is applied
+    // here rather than being expressible as a modifier in the spell data.
+    const unbreakableSpirit = combatant.hasTalent(TALENTS.UNBREAKABLE_SPIRIT_TALENT) ? 0.7 : 1;
+    const quickenedInvocation = combatant.hasTalent(TALENTS.QUICKENED_INVOCATION_TALENT) ? 15 : 0;
     return [
       {
         spell: SPELLS.CONSECRATION_CAST.id,
@@ -56,7 +66,6 @@ class Abilities extends CoreAbilities {
         gcd: { base: 1500 },
       },
       {
-        // T15: Holy Shield
         spell: TALENTS.HAMMER_OF_THE_RIGHTEOUS_TALENT.id,
         category: SPELL_CATEGORY.ROTATIONAL,
         cooldown: (haste: number) => 5 / (1 + haste),
@@ -72,7 +81,7 @@ class Abilities extends CoreAbilities {
       {
         spell: SPELLS.JUDGMENT_CAST_PROTECTION.id,
         category: SPELL_CATEGORY.ROTATIONAL,
-        cooldown: (haste: number) => 5 / (1 + haste),
+        cooldown: (haste: number) => 4.95 / (1 + haste),
         charges: combatant.hasTalent(TALENTS.CRUSADERS_JUDGMENT_TALENT) ? 2 : 1,
         gcd: {
           base: 1500,
@@ -87,7 +96,8 @@ class Abilities extends CoreAbilities {
         charges: 2,
         enabled: combatant.hasTalent(TALENTS.HOLY_ARMAMENTS_PROTECTION_TALENT),
         category: SPELL_CATEGORY.COOLDOWNS,
-        cooldown: 60 - combatant.getTalentRank(TALENTS.FOREWARNING_TALENT) * 12,
+        cooldown:
+          60 - combatant.getTalentRank(TALENTS.FOREWARNING_TALENT) * 12 - quickenedInvocation,
         gcd: {
           base: 1500,
         },
@@ -97,7 +107,7 @@ class Abilities extends CoreAbilities {
         buffSpellId: TALENTS.ARDENT_DEFENDER_TALENT.id,
         enabled: combatant.hasTalent(TALENTS.ARDENT_DEFENDER_TALENT),
         category: SPELL_CATEGORY.DEFENSIVE,
-        cooldown: 120 * (combatant.hasTalent(TALENTS.UNBREAKABLE_SPIRIT_TALENT) ? 0.7 : 1),
+        cooldown: 90 * unbreakableSpirit,
         castEfficiency: {
           suggestion: true,
         },
@@ -112,20 +122,21 @@ class Abilities extends CoreAbilities {
           SPELLS.GUARDIAN_OF_ANCIENT_KINGS_QUEEN.id,
         ],
         category: SPELL_CATEGORY.DEFENSIVE,
-        cooldown: 300,
+        cooldown: 180,
+        charges: combatant.hasTalent(TALENTS.EMPYREAN_AUTHORITY_TALENT) ? 2 : 1,
         castEfficiency: {
           suggestion: true,
         },
       },
       {
-        spell: [TALENTS.AVENGING_WRATH_TALENT.id, TALENTS.AVENGING_WRATH_TALENT.id],
+        spell: TALENTS.AVENGING_WRATH_TALENT.id,
         buffSpellId: TALENTS.AVENGING_WRATH_TALENT.id,
         category: SPELL_CATEGORY.COOLDOWNS,
         castEfficiency: {
           suggestion: true,
           recommendedEfficiency: 0.9,
         },
-        cooldown: 120,
+        cooldown: 60,
         enabled:
           combatant.hasTalent(TALENTS.AVENGING_WRATH_TALENT) &&
           !combatant.hasTalent(TALENTS.SENTINEL_TALENT),
@@ -145,7 +156,7 @@ class Abilities extends CoreAbilities {
         spell: SPELLS.LAY_ON_HANDS_EMPYREAL_WARD.id,
         isDefensive: true,
         category: SPELL_CATEGORY.DEFENSIVE,
-        cooldown: 600,
+        cooldown: 600 * unbreakableSpirit,
         castEfficiency: {
           suggestion: true,
           recommendedEfficiency: 0.1,
@@ -162,7 +173,7 @@ class Abilities extends CoreAbilities {
       {
         spell: TALENTS.DIVINE_STEED_TALENT.id,
         category: SPELL_CATEGORY.UTILITY,
-        cooldown: 45,
+        cooldown: 30 - (combatant.hasTalent(TALENTS.DIVINE_SPURS_TALENT) ? 9 : 0),
         charges: combatant.hasTalent(TALENTS.CAVALIER_TALENT) ? 2 : 1,
         gcd: null,
       },
@@ -209,13 +220,13 @@ class Abilities extends CoreAbilities {
       {
         spell: SPELLS.HAMMER_OF_JUSTICE.id,
         category: SPELL_CATEGORY.UTILITY,
-        cooldown: 60,
+        cooldown: 45 - (combatant.hasTalent(TALENTS.FIST_OF_JUSTICE_TALENT) ? 15 : 0),
         gcd: {
           base: 1500,
         },
       },
       {
-        spell: TALENTS.HAMMER_OF_WRATH_TALENT.id,
+        spell: SPELLS.HAMMER_OF_WRATH_PROTECTION.id,
         category: SPELL_CATEGORY.ROTATIONAL,
         cooldown: (haste: number) => 7.5 / (1 + haste),
         gcd: {
@@ -245,7 +256,7 @@ class Abilities extends CoreAbilities {
         spell: SPELLS.DIVINE_SHIELD.id,
         buffSpellId: SPELLS.DIVINE_SHIELD.id,
         category: SPELL_CATEGORY.DEFENSIVE,
-        cooldown: 300 * (combatant.hasTalent(TALENTS.UNBREAKABLE_SPIRIT_TALENT) ? 0.7 : 1),
+        cooldown: 300 * unbreakableSpirit,
         castEfficiency: {
           suggestion: true,
           recommendedEfficiency: 0.6,
@@ -257,7 +268,7 @@ class Abilities extends CoreAbilities {
       {
         spell: TALENTS.LAY_ON_HANDS_TALENT.id,
         category: SPELL_CATEGORY.DEFENSIVE,
-        cooldown: 600,
+        cooldown: 600 * unbreakableSpirit,
         gcd: null,
       },
       {
@@ -268,7 +279,7 @@ class Abilities extends CoreAbilities {
       {
         spell: TALENTS.DIVINE_TOLL_TALENT.id,
         category: SPELL_CATEGORY.COOLDOWNS,
-        cooldown: 60,
+        cooldown: 60 - quickenedInvocation,
         castEfficiency: {
           suggestion: true,
           recommendedEfficiency: 0.9,
